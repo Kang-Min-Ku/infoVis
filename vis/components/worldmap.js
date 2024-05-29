@@ -1,3 +1,10 @@
+// Reference
+// [1] https://d3js.org/d3-geo/path
+// [2] https://observablehq.com/@mbostock/continuous-color-guide
+// [3] https://observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
+// [4] https://www.d3indepth.com/geographic/
+// [5] ChatGPT
+
 class WorldMap {
     margin = {
         top: 10, right: 100, bottom: 10, left: 10

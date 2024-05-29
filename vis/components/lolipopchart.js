@@ -1,3 +1,7 @@
+// Reference
+// [1] https://observablehq.com/@d3/lollipop-chart
+// [2] ChatGPT
+
 class LoliPopChart {
     margin = {
         top: 10, right: 10, bottom: 50, left: 22.5

@@ -1,3 +1,9 @@
+// Reference
+// [1] https://d3-graph-gallery.com/heatmap
+// [2] https://observablehq.com/@mbostock/continuous-color-guide
+// [3] https://observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
+// [4] ChatGPT
+
 class LinkedHeatMap{
     margin = {
         top: 10, right: 10, bottom: 20, left: 20
