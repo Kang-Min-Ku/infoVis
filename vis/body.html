@@ -10,10 +10,12 @@
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
     <!-- NOTE: import javascript -->
-    <script src="components/util.js"></script>
     <script src="components/worldmap.js"></script>
     <script src="components/lolipopchart.js"></script>
+    <script src="components/heatmap.js"></script>
+    <script src="components/datatable.js"></script>
 
     <title>Aviation Accident Visualization</title>
     <style>
@@ -34,8 +36,8 @@
             
         }
 
-        .statisticBox {
-            height: 600px;
+        .heatmapBox {
+            height: 1000px;
             width: 1200px;
         }
 
@@ -48,7 +50,12 @@
             height: 150px;
             width: 200px;
         }
-
+        
+        .responsiveTable {
+            width: 100%;
+            border-collapse: collapse;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 
@@ -96,8 +103,12 @@
                 </select>
             </div> -->
         </div>
-        <div class="text-center">
-            <svg class="statisticBox" id="statistic"></svg>
+        <div id="heatmapContainer" class="text-center">
+            <svg class="heatmapBox" id="heatmap"></svg>
+            <div class="tooltip bs-tooltip-top show" id="heatmapTooltip" role="tooltip" style="display:none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner"></div>
+            </div>
         </div>
         <div class="row pt-2 pb-2">
             <div class="col-2">
@@ -152,28 +163,50 @@
                 <svg class="geoSmallBox" id="month12"></svg>
             </div>
         </div>
+        <div class="row">
+            <div class="col">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="showData">
+                    <label class="form-check-label" for="showData">Show Data(Web page can stutter)</label>
+                </div>
+            </div>
+        </div>
+        <div class="row pt-2" style="overflow-x:auto;">
+            <table class="table table-striped text-center responsiveTable">
+                <thead class="table">
+                    <tr>
+                        <th>Year</th>
+                        <th>Month</th>
+                        <th>Day</th>
+                        <th>Country</th>
+                        <th>State</th>
+                        <th>City</th>
+                        <th>Hour</th>
+                        <th>Minute</th>
+                        <th>Operator</th>
+                        <th>Flight</th>
+                        <th>AC Type</th>
+                        <th>Registration</th>
+                        <th>Total Aboard</th>
+                        <th>Passenger Aboard</th>
+                        <th>Crew Aboard</th>
+                        <th>Total Fatalities</th>
+                        <th>Passenger Fatalities</th>
+                        <th>Crew Fatalities</th>
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody id="data-table">
 
-        <!-- TODO: table 데이터에 맞게 나타내기 -->
-        <table class="table table-striped text-center">
-            <thead>
-                <tr>
-                    <th>Petal Length</th>
-                    <th>Petal Width</th>
-                    <th>Sepal Length</th>
-                    <th>Sepal Width</th>
-                    <th>Variety</th>
-                </tr>
-            </thead>
-            <tbody id="data-table">
-
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </main>
 
     <script>
-        let A2Data, geoData, statistic, worldMap, dataTable;
-        let brushedA2Data, brushedCountry;
-        let loliPops, yMax;
+        let A2Data, geoData, successiveData, numUniqueCountryData, brushedA2Data, brushedCountry; 
+        let heatmap, worldMap, dataTable, loliPops;
+        let yMax;
         // Listener for reasonable time setup
         let timerId;
         let startYear = document.getElementById("startYear");
@@ -212,12 +245,38 @@
         function updateLoliPop(){
             let represent = d3.select("#represent").property("value");
 
-            const counts = d3.rollup(brushedA2Data, v => v.length, d => d["month"], d => d["day"]);
-            yMax = Math.max(...Array.from(counts, ([key, map]) => Math.max(...Array.from(map.values()))));
+            if(represent === "numAccident"){
+                const counts = d3.rollup(brushedA2Data, v => v.length, d => d["month"], d => d["day"]);
+                yMax = Math.max(...Array.from(counts, ([key, map]) => Math.max(...Array.from(map.values()))));
+            }
+            else{
+                const counts = d3.rollup(brushedA2Data, v => d3.sum(v, d => d[represent]), d => d["month"], d => d["day"]);
+                yMax = Math.max(...Array.from(counts, ([key, map]) => Math.max(...Array.from(map.values()))));
+            }
 
             lolipops.forEach((lolipop, index) => {
                 lolipop.update(brushedA2Data, represent, yMax);
             })
+        }
+
+        function updateHeatmap(){
+            let startYear = d3.select("#startYear").property("value");
+            let endYear = d3.select("#endYear").property("value");
+            let represent = d3.select("#represent").property("value");
+
+            heatmap.update(brushedA2Data, represent, startYear, endYear);
+        }
+
+        function updateDataTable(){
+            if(d3.select("#showData").property("checked")){
+                dataTable.update(
+                    brushedA2Data,
+                    ["year", "month", "day", "country", "state", "city", "hour", "minute", "operator", "flight", "actype", "registration", "totalAboard", "passengerAboard", "crewAboard", "totalFatality", "passengerFatality", "crewFatality", "summary"]
+                );
+            }
+            else{
+                dataTable.reset();
+            }
         }
 
         function resetWorldMap(){
@@ -230,9 +289,20 @@
             })
         }
 
+        function resetHeatmap(){
+            heatmap.reset();
+        }
+
+        function resetDataTable(){
+            dataTable.reset();
+        }
+
         function updateAll(){
             let startYear = d3.select("#startYear").property("value");
             let endYear = d3.select("#endYear").property("value");
+            let isShowData = d3.select("#showData").property("checked");
+
+            brushedA2Data = A2Data.filter(d => brushedCountry.includes(d["country"])); // duplicate brushedA2Data X(
             if (brushedA2Data && brushedA2Data.length > 0) {
                 brushedA2Data = brushedA2Data.filter(d => d["year"] >= startYear && d["year"] <= endYear);
             }
@@ -241,7 +311,8 @@
             }
             updateWorldMap();
             updateLoliPop();
-            // updateStatistic();
+            updateHeatmap();
+            updateDataTable();
         }
 
         function resetAll(){
@@ -249,13 +320,14 @@
             brushedA2Data = A2Data;
             resetWorldMap();
             resetLoliPop();
-            // resetStatistic();
+            resetHeatmap();
+            resetDataTable();
         }
 
         // Infovis
         d3.csv("https://raw.githubusercontent.com/Kang-Min-Ku/infoVis/main/processed_data.csv")
-            .then(csvData => {
-                csvData.forEach(d => {
+            .then(aad => {
+                aad.forEach(d => {
                     d["crewAboard"] = +d["crewAboard"];
                     d["crewFatality"] = +d["crewFatality"];
                     d["day"] = +d["day"];
@@ -271,7 +343,7 @@
                     d["route"] = d["route"].split(",");
                 });
 
-                A2Data = csvData; // aviation accident
+                A2Data = aad; // aviation accident
 
                 d3.json("https://raw.githubusercontent.com/Kang-Min-Ku/infoVis/main/smallWorld.geo.json")
                     .then(d =>{ 
@@ -280,8 +352,6 @@
                         worldMap = new WorldMap("#worldmap", geoData, 1200, 400);
                         worldMap.initialize();
                         resetWorldMap();
-                        // statistic
-                        
                         // listener
                         d3.selectAll("#startYear").on("change", updateAll);
                         d3.selectAll("#endYear").on("change", updateAll);
@@ -334,6 +404,36 @@
                         lolipops[index].initialize(false);
                     }
                 })
+
+                d3.csv("https://raw.githubusercontent.com/Kang-Min-Ku/infoVis/main/successive_accident_occur.csv")
+                    .then(sd => {
+                        columns = sd.columns;
+                        sd.forEach(d => {
+                           columns.forEach(c => {
+                               if(c !== "country"){
+                                d[c] = +d[c];
+                               }
+                           }) 
+                        });
+                        successiveData = sd;
+
+                        d3.csv("https://raw.githubusercontent.com/Kang-Min-Ku/infoVis/main/unique_country.csv")
+                            .then(ud => {
+                                ud.forEach(d => {
+                                    d["num"] = +d["num"];
+                                });
+                                numUniqueCountryData = ud;
+
+                                // heatmap
+                                heatmap = new LinkedHeatMap("#heatmap", "#heatmapTooltip", successiveData, numUniqueCountryData, 1000, 840);
+                                heatmap.initialize() // 42 is the number of countries with the highest frequency of accidents in a single year
+                                // heatmap.update(A2Data, "numAccident", 1908, 2024);
+                            });
+                    });
+
+                // dataTable
+                dataTable = new DataTable("#data-table");
+                d3.select("#showData").on("change", updateAll);
             })
     </script>
 

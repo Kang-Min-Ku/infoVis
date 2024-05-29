@@ -29,7 +29,7 @@ class WorldMap {
         this.geoGenerator = d3.geoPath()
             .projection(this.projection);
 
-        this.xScale = d3.scaleSequential(d3.interpolateViridis); // 좀 더 변화가 잘 보이는 color scale 찾기
+        this.xScale = d3.scaleSequential(d3.interpolateViridis);
         this.legend = this.svg.append("g");
 
         this.brush = d3.brush()

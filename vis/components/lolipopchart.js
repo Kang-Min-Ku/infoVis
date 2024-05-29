@@ -1,6 +1,6 @@
 class LoliPopChart {
     margin = {
-        top: 10, right: 10, bottom: 50, left: 20
+        top: 10, right: 10, bottom: 50, left: 22.5
     }
     textMargin = {
         x: -65,
@@ -120,6 +120,7 @@ class LoliPopChart {
             .attr("fill", "black");
 
         this.monthIndicator
+            .transition()
             .attr("x", this.width + this.textMargin.x)
             .attr("y", this.height + this.textMargin.y)
             .text(this.text[this.month])
@@ -128,6 +129,7 @@ class LoliPopChart {
             .style("font-weight", "bold");
 
         this.xAxis
+            .transition()
             .attr("transform", `translate(${this.margin.left}, ${this.margin.top + this.height})`)
             .call(d3.axisBottom(this.xScale)
                 .tickValues([1, 15, Math.max(...this.categories)])
@@ -135,11 +137,11 @@ class LoliPopChart {
 
         if(this.yAxis){
             this.yAxis
+                .transition()
                 .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`)
                 .call(d3.axisLeft(this.yScale))
-                .transition()
                 .selectAll("text")
-                .style("font-size", "8px")
+                .style("font-size", "6px")
                 .style("text-anchor", "end");
         }
     }
